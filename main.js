@@ -146,7 +146,6 @@ function addRain() {
 }
 
 let rainM, rainU;
-
 function addClouds() {
   textureLoader.load("../textures/smoke.png", function(texture){
     const cloudGeo = new THREE.PlaneGeometry(500,500);
@@ -263,7 +262,6 @@ class SnowParticleSystem {
         positions[i * 3 + 2] = Math.random() * 200 - 100;
       }
     }
-
     this.geometry.attributes.position.needsUpdate = true;
   }
 }
@@ -477,23 +475,45 @@ carChangeButton.addEventListener('click', () => {
   changeCar();
 });
 
-
 // =============================
 // [SECTION]: Road + Tiles
 // =============================
-const roadSegmentLength = 60;
+const curveAmplitude = 0.2;   // height of hills (adjust to make hills higher or lower)
+const curveFrequency = 0.025;  // frequency of sine wave (adjust wavelength)
+const roadSegmentLength = Math.PI / curveFrequency; // ≈ 125.66
+//const roadSegmentLength = 60;
 const roadWidth = 10;
 const visibleSegments = 15;
 const roadSegments = [];
-const overlapPercent = 0.1;
-const overlapLength = roadSegmentLength * overlapPercent;
+//const overlapPercent = 0.1;
+//const overlapLength = roadSegmentLength * overlapPercent;
+const overlapLength = 0;
 
 function createRoadSegment(z) {
   const group = new THREE.Group();
   group.position.z = z;
 
-  // Center road with full material setup
-  const roadGeometry = new THREE.BoxGeometry(roadWidth, 0.1, roadSegmentLength);
+  // Create PlaneGeometry for road (width, length, widthSegments, lengthSegments)
+  const segmentsAlongLength = 40; // 
+  const segmentsAcrossWidth = 1;
+  const roadGeometry = new THREE.PlaneGeometry(roadWidth, roadSegmentLength, segmentsAcrossWidth, segmentsAlongLength);
+
+  // Deform vertices for up/down hills along road length (which is Y in PlaneGeometry)
+  const positionAttribute = roadGeometry.attributes.position;
+  for (let i = 0; i <= segmentsAlongLength; i++) {
+    // y coordinate along length from -halfLength to +halfLength
+    const localY = (i / segmentsAlongLength) * roadSegmentLength - roadSegmentLength / 2;
+    const worldZ = z + localY; // true world Z position
+    //const height = Math.max(0, Math.sin(globalZ * curveFrequency)) * curveAmplitude;
+    const height = (Math.sin(worldZ * curveFrequency) * 0.5 + 0.5) * curveAmplitude;
+  for (let j = 0; j <= segmentsAcrossWidth; j++) {
+    const index = i * (segmentsAcrossWidth + 1) + j;
+    positionAttribute.setZ(index, height);
+  }
+}
+roadGeometry.computeVertexNormals();
+
+  // Load textures (reuse from original)
   const textureLoader = new THREE.TextureLoader();
 
   const roadColorMap = textureLoader.load('../textures/road_diffuse.png');
@@ -515,15 +535,19 @@ function createRoadSegment(z) {
     displacementMap: roadDisplacementMap,
     displacementScale: 0.2,
     roughness: 0.9,
-    metalness: 0.1
+    metalness: 0.1,
+    side: THREE.DoubleSide
   });
 
   const road = new THREE.Mesh(roadGeometry, roadMaterial);
   road.castShadow = true;
   road.receiveShadow = true;
+
+  // Rotate plane so it's flat on XZ plane (default PlaneGeometry lies in XY)
+  road.rotation.x = -Math.PI / 2;
   road.position.set(0, 0, 0);
   group.add(road);
-
+  
   // Side tiles with environment decorations
   const sideTileWidth = roadWidth * 4;
   for (let i = 1; i <= 2; i++) {
@@ -546,11 +570,9 @@ function createRoadSegment(z) {
         const randType = Math.random();
 
         const treeBuffer = 20; // half of the 40-unit road width
-        const maxOffset = sideTileWidth / 2;
         let treePosX;
 
-        // Generate X position relative to the side tile center (xOffset),
-        // but clamp it to avoid the center road area
+        // Generate X position relative to side tile center but avoid center road
         do {
           const localOffset = (Math.random() - 0.5) * sideTileWidth;
           treePosX = xOffset + localOffset;
@@ -565,8 +587,8 @@ function createRoadSegment(z) {
           const rot = (Math.random() - 0.5) * 0.3;
           const tree = spawnEnvObject(treeModel, treePosX, treePosY, treePosZ, treeScale * (1 + Math.random() * 0.4), rot);
           if (tree) group.add(tree);
-         }
-         else if (randType < 0.5 && rockModel) {
+        }
+        else if (randType < 0.5 && rockModel) {
           const scale = 0.1 + Math.random() * 0.4;
           const rot = Math.random() * Math.PI * 2;
           const rock = spawnEnvObject(rockModel, offsetX, 0, randZ, scale, rot);
@@ -679,7 +701,6 @@ let cruiseControl = false;
 let cruiseSpeed = speed;
 const maxSpeed = 5;
 const minSpeed = 0.1;
-
 const keys = {
   w: false,
   s: false,
@@ -746,7 +767,6 @@ function updateSpeed() {
 // =============================
 // [SECTION]: ANIMATE
 // =============================
-
 const clock = new THREE.Clock();
 
 function animate(time) {
@@ -766,7 +786,6 @@ function animate(time) {
   const lightFactor = Math.max(0.1, sunY / sunRadius);
   sun.intensity = lightFactor;
   moon.intensity = Math.max(0.1, -sunY / sunRadius);
-
   // === Day/Night UI Pointer ===
   const normalized = (Math.cos(sunAngle) + 1) / 2;
   dayNightPointer.style.left = `${normalized * 100}%`;
@@ -782,7 +801,6 @@ function animate(time) {
   // === Environment Lighting Adjustment ===
   dynamicEnvMeshes.forEach(mesh => {
     if (!mesh.material?.color) return;
-
     const dayColor = new THREE.Color(0xffffff);
     const nightColor = new THREE.Color(0x111111);
     mesh.material.color.lerpColors(nightColor, dayColor, lightFactor);
@@ -819,35 +837,65 @@ function animate(time) {
   }
 
   // === Car & Road Logic ===
-  if (car) {
-    // === Update Light Positions with Car Movement ===
+const downRaycaster = new THREE.Raycaster();
+const downDirection = new THREE.Vector3(0, -1, 0);
+const carOffsetHeight = 0.3; // how high above road surface the car floats
+
+if (car) {
+  // Move car forward along Z axis by speed
+  car.position.z += speed;
+
+  // Move laterally based on A/D input
+  const lateralSpeed = 0.1;
+  const maxLateral = roadWidth / 2 - 1;
+
+  if (keys.d) {
+    car.position.x = Math.max(car.position.x - lateralSpeed, -maxLateral);
+  }
+  if (keys.a) {
+    car.position.x = Math.min(car.position.x + lateralSpeed, maxLateral);
+  }
+
+  // Cast ray down from above car to detect road height
+  const rayOrigin = new THREE.Vector3(car.position.x, 10, car.position.z);
+  downRaycaster.set(rayOrigin, downDirection);
+
+  // Check intersection with road meshes
+  const intersects = downRaycaster.intersectObjects(roadSegments, true); // true = recursive check in children
+
+  if (intersects.length > 0) {
+    const roadY = intersects[0].point.y;
+    car.position.y = roadY + carOffsetHeight;
+  }
+
+  // Update all the lights relative to the car position
+  const { x, y, z } = car.position;
+
   if (headlightLeft && headlightRight && taillightLeft && taillightRight && taillightMiddle && lightLeft && lightRight) {
-      const { x, y, z } = car.position;
+    lightLeft.position.set(x + 0.855, y + 0.545, z + 2.25);
+    lightLeft.target.position.set(x + 0.85, y + 0.625, z + 2.15);
 
-      lightLeft.position.set(x + 0.855, y + 0.545, z + 2.25);
-      lightLeft.target.position.set(x + 0.85, y + 0.625, z + 2.15);
+    lightRight.position.set(x - 0.855, y + 0.545, z + 2.25);
+    lightRight.target.position.set(x - 0.85, y + 0.625, z + 2.15);
 
-      lightRight.position.set(x - 0.855, y + 0.545, z + 2.25);
-      lightRight.target.position.set(x - 0.85, y + 0.625, z + 2.15);
+    headlightLeft.position.set(x + 0.75, y + 1, z + 1.55);
+    headlightLeft.target.position.set(x + 0.85, y + 0.25, z + 25);
 
-      headlightLeft.position.set(x + 0.75, y + 1, z + 1.55);
-      headlightLeft.target.position.set(x + 0.85, y + 0.25, z + 25);
+    headlightRight.position.set(x - 0.75, y + 1, z + 1.55);
+    headlightRight.target.position.set(x - 0.85, y + 0.25, z + 25);
 
-      headlightRight.position.set(x - 0.75, y + 1, z + 1.55);
-      headlightRight.target.position.set(x - 0.85, y + 0.25, z + 25);
+    taillightLeft.position.set(x + 0.85, y + 0.7, z - 2.275);
+    taillightLeft.target.position.set(x + 0.75, y + 0.7, z - 2.3);
 
-      taillightLeft.position.set(x + 0.85, y + 0.7, z - 2.275);
-      taillightLeft.target.position.set(x + 0.75, y + 0.7, z - 2.3);
+    taillightRight.position.set(x - 0.85, y + 0.7, z - 2.275);
+    taillightRight.target.position.set(x - 0.75, y + 0.7, z - 2.3);
 
-      taillightRight.position.set(x - 0.85, y + 0.7, z - 2.275);
-      taillightRight.target.position.set(x - 0.75, y + 0.7, z - 2.3);
+    taillightMiddle.position.set(x, y + 0.725, z - 2.275);
+    taillightMiddle.target.position.set(x, y + 0.725, z - 2.3);
 
-      taillightMiddle.position.set(x, y + 0.725, z - 2.275);
-      taillightMiddle.target.position.set(x, y + 0.725, z - 2.3);
-
-      interiorLight.position.set(x, y + 0.725, z + 0.5);
-      interiorLight.target.position.set(x, y + 0.715, z);
-    }
+    interiorLight.position.set(x, y + 0.725, z + 0.5);
+    interiorLight.target.position.set(x, y + 0.715, z);
+  }
 
     car.position.z = 0;
 
