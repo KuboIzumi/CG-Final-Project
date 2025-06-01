@@ -892,16 +892,16 @@ if (car) {
     headlightRight.position.set(x - 0.75, y + 1, z + 1.55);
     headlightRight.target.position.set(x - 0.85, y + 0.25, z + 25);
 
-    taillightLeft.position.set(x + 0.85, y + 0.7, z - 2.275);
+    taillightLeft.position.set(x + 0.85, y + 0.7, taillightLeft.position.z);
     taillightLeft.target.position.set(x + 0.75, y + 0.7, z - 2.3);
 
-    taillightRight.position.set(x - 0.85, y + 0.7, z - 2.275);
+    taillightRight.position.set(x - 0.85, y + 0.7, taillightRight.position.z);
     taillightRight.target.position.set(x - 0.75, y + 0.7, z - 2.3);
 
-    taillightMiddle.position.set(x, y + 0.725, z - 2.275);
+    taillightMiddle.position.set(x, y + 0.725, taillightMiddle.position.z);
     taillightMiddle.target.position.set(x, y + 0.725, z - 2.3);
 
-    interiorLight.position.set(x, y + 0.725, z + 0.5);
+    interiorLight.position.set(x, y + 0.725, interiorLight.position.z);
     interiorLight.target.position.set(x, y + 0.715, z);
   }
 
