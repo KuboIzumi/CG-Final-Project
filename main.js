@@ -146,6 +146,7 @@ function addRain() {
 }
 
 let rainM, rainU;
+
 function addClouds() {
   textureLoader.load("../textures/smoke.png", function(texture){
     const cloudGeo = new THREE.PlaneGeometry(500,500);
@@ -262,6 +263,7 @@ class SnowParticleSystem {
         positions[i * 3 + 2] = Math.random() * 200 - 100;
       }
     }
+
     this.geometry.attributes.position.needsUpdate = true;
   }
 }
@@ -475,6 +477,7 @@ carChangeButton.addEventListener('click', () => {
   changeCar();
 });
 
+
 // =============================
 // [SECTION]: Road + Tiles
 // =============================
@@ -502,7 +505,7 @@ function createRoadSegment(z) {
   const positionAttribute = roadGeometry.attributes.position;
   for (let i = 0; i <= segmentsAlongLength; i++) {
     // y coordinate along length from -halfLength to +halfLength
-    const localY = (i / segmentsAlongLength) * roadSegmentLength - roadSegmentLength / 2;
+    const localY = (i / segmentsAlongLength) * roadSegmentLength;
     const worldZ = z + localY; // true world Z position
     //const height = Math.max(0, Math.sin(globalZ * curveFrequency)) * curveAmplitude;
     const height = (Math.sin(worldZ * curveFrequency) * 0.5 + 0.5) * curveAmplitude;
@@ -525,7 +528,7 @@ roadGeometry.computeVertexNormals();
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
     tex.repeat.set(1, 1);
   });
-  
+
   const roadMaterial = new THREE.MeshStandardMaterial({
     color: 0x333333,
     map: roadColorMap,
@@ -545,9 +548,8 @@ roadGeometry.computeVertexNormals();
 
   // Rotate plane so it's flat on XZ plane (default PlaneGeometry lies in XY)
   road.rotation.x = -Math.PI / 2;
-  road.position.set(0, 0, 0);
+  road.position.set(0, 0, roadSegmentLength / 2);
   group.add(road);
-  
   // Side tiles with environment decorations
   const sideTileWidth = roadWidth * 4;
   for (let i = 1; i <= 2; i++) {
@@ -701,6 +703,7 @@ let cruiseControl = false;
 let cruiseSpeed = speed;
 const maxSpeed = 5;
 const minSpeed = 0.1;
+
 const keys = {
   w: false,
   s: false,
@@ -767,6 +770,7 @@ function updateSpeed() {
 // =============================
 // [SECTION]: ANIMATE
 // =============================
+
 const clock = new THREE.Clock();
 
 function animate(time) {
@@ -786,6 +790,7 @@ function animate(time) {
   const lightFactor = Math.max(0.1, sunY / sunRadius);
   sun.intensity = lightFactor;
   moon.intensity = Math.max(0.1, -sunY / sunRadius);
+
   // === Day/Night UI Pointer ===
   const normalized = (Math.cos(sunAngle) + 1) / 2;
   dayNightPointer.style.left = `${normalized * 100}%`;
@@ -801,6 +806,7 @@ function animate(time) {
   // === Environment Lighting Adjustment ===
   dynamicEnvMeshes.forEach(mesh => {
     if (!mesh.material?.color) return;
+
     const dayColor = new THREE.Color(0xffffff);
     const nightColor = new THREE.Color(0x111111);
     mesh.material.color.lerpColors(nightColor, dayColor, lightFactor);
@@ -839,7 +845,7 @@ function animate(time) {
   // === Car & Road Logic ===
 const downRaycaster = new THREE.Raycaster();
 const downDirection = new THREE.Vector3(0, -1, 0);
-const carOffsetHeight = 0.3; // how high above road surface the car floats
+const carOffsetHeight = 0.2;
 
 if (car) {
   // Move car forward along Z axis by speed
