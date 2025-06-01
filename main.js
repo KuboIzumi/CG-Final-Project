@@ -282,8 +282,6 @@ function loadCar(carURL) {
     carURL,
     function (gltf) {
       car = gltf.scene;
-      car.scale.set(100, 100, 100);
-      car.position.y = 0.2;
 
       car.traverse(n => {
         if (n.isMesh) {
@@ -294,9 +292,13 @@ function loadCar(carURL) {
 
       if (carURL == '../cars/Dodge SRT Tomahawk/source/dodge_srt_tomahawk_x.glb') {
         car.name = 'Dodge';
+        car.scale.set(100, 100, 100);
+        car.position.y = 0.2;
       }
       else {
-        car.name = 'Apollo';
+        car.name = 'Nissan';
+        car.scale.set(0.3, 0.3, 0.3);
+        car.position.y = 0.2;
       }
 
       // === Add lights + targets ===
@@ -401,7 +403,7 @@ function loadCar(carURL) {
   return car;
 }
 
-let Dodge, Apollo;
+let Dodge, Nissan;
 
 function loadFirstCar() {
   Dodge = loadCar('../cars/Dodge SRT Tomahawk/source/dodge_srt_tomahawk_x.glb');
@@ -422,10 +424,10 @@ function changeCar() {
         if (light.target) { scene.remove(light.target); }
       }
     });
-    Apollo = loadCar('../cars/2019 Gumbert Apollo/source/2019_gumpert_apollo.glb');
+    Nissan = loadCar('../cars/Nissan GTR/source/nissan_gtr.glb');
   }
   else {
-    if (car.name == 'Apollo') {
+    if (car.name == 'Nissan') {
     scene.remove(car);
     disposeHierarchy(car);
     [
