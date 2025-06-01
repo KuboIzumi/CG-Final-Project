@@ -158,12 +158,14 @@ function addClouds() {
 
     for (let p=0; p<100; p++) {
       let cloud = new THREE.Mesh(cloudGeo, cloudMaterial);
+
+      const carZ = car ? car.position.z : 0;
+
       cloud.position.set(
-        Math.random()*2400 -1200,
-        400,
-        Math.random()*2000 - 1000
+        Math.random() * 2400 - 1200,
+        250,
+        carZ + Math.random() * 4000
       );
-      
       
       cloud.rotation.x = 90;
       cloud.rotation.y = 0;
@@ -173,7 +175,6 @@ function addClouds() {
       scene.add(cloud);
     }
   });
-  
 }
 
 function removeClouds() {
@@ -928,7 +929,7 @@ if (car) {
       controls.update();
     } else if (cameraMode === 'firstPerson') {
       if (car) {
-        camera.position.set(car.position.x, car.position.y + 1.5, car.position.z + 1.5);
+        camera.position.set(car.position.x, car.position.y + 0.715, car.position.z - 0.185);
         camera.lookAt(car.position.x, car.position.y + 1, car.position.z + 10);
       }
     } else {
