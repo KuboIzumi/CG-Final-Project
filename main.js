@@ -328,7 +328,7 @@ function loadCar(carURL) {
         new THREE.Vector3(car.position.x - 0.85, car.position.y + 0.625, car.position.z + 2.15)
       );
 
-      // === Functional Headlights ===
+      // === Headlights ===
       headlightLeft = createSpotlight(
         { color: 0xffffff, intensity: 2.5, distance: 200, angle: Math.PI / 8, penumbra: 1, decay: 2 },
         new THREE.Vector3(car.position.x + 0.75, car.position.y + 1, car.position.z + 1.55),
@@ -485,13 +485,10 @@ carChangeButton.addEventListener('click', () => {
 // =============================
 const curveAmplitude = 0.2;   // height of hills (adjust to make hills higher or lower)
 const curveFrequency = 0.025;  // frequency of sine wave (adjust wavelength)
-const roadSegmentLength = Math.PI / curveFrequency; // ≈ 125.66
-//const roadSegmentLength = 60;
+const roadSegmentLength = Math.PI / curveFrequency; 
 const roadWidth = 10;
 const visibleSegments = 15;
 const roadSegments = [];
-//const overlapPercent = 0.1;
-//const overlapLength = roadSegmentLength * overlapPercent;
 const overlapLength = 0;
 
 function createRoadSegment(z) {
@@ -508,8 +505,7 @@ function createRoadSegment(z) {
   for (let i = 0; i <= segmentsAlongLength; i++) {
     // y coordinate along length from -halfLength to +halfLength
     const localY = (i / segmentsAlongLength) * roadSegmentLength;
-    const worldZ = z + localY; // true world Z position
-    //const height = Math.max(0, Math.sin(globalZ * curveFrequency)) * curveAmplitude;
+    const worldZ = z + localY;
     const height = (Math.sin(worldZ * curveFrequency) * 0.5 + 0.5) * curveAmplitude;
   for (let j = 0; j <= segmentsAcrossWidth; j++) {
     const index = i * (segmentsAcrossWidth + 1) + j;
@@ -517,8 +513,6 @@ function createRoadSegment(z) {
   }
 }
 roadGeometry.computeVertexNormals();
-
-  // Load textures (reuse from original)
   const textureLoader = new THREE.TextureLoader();
 
   const roadColorMap = textureLoader.load('../textures/road_diffuse.png');
@@ -573,7 +567,7 @@ roadGeometry.computeVertexNormals();
         const offsetX = xOffset + (Math.random() - 0.5) * sideTileWidth;
         const randType = Math.random();
 
-        const treeBuffer = 20; // half of the 40-unit road width
+        const treeBuffer = 20;
         let treePosX;
 
         // Generate X position relative to side tile center but avoid center road
@@ -656,7 +650,7 @@ function spawnGrassPatch(group, x, y, z, baseScale) {
         if (child.isMesh) {
           child.castShadow = true;
           child.receiveShadow = true;
-          dynamicEnvMeshes.push(child); // Track it
+          dynamicEnvMeshes.push(child);
         }
       });
     group.add(blade);
@@ -784,8 +778,6 @@ function animate(time) {
   const sunY = sunRadius * Math.sin(sunAngle);
   sun.position.set(sunX, sunY, 0);
   sun.color.setHSL(0.1, 1, Math.max(0.2, sunY / sunRadius));
-
-  // Moon (opposite side of sun)
   moon.position.set(-sunX + 30, -sunY + 40, 100);
 
   // Adjust light intensities
@@ -822,12 +814,9 @@ function animate(time) {
   // === cloud rotation logic ===
   if (isCloudy && clouds.length > 0) {
     clouds.forEach(p => {
-      //let zRot = p.rotation.z;
       p.rotation.x = camera.rotation.x;
       p.rotation.y = camera.rotation.y;
       p.rotation.z -= 0.002;
-      //zRot -= 0.002;
-      //p.lookAt(camera.position);
       if (isRaining) {
         p.position.y = 300;
       }
@@ -853,7 +842,7 @@ if (car) {
   // Move car forward along Z axis by speed
   car.position.z += speed;
 
-  // Move laterally based on A/D input
+  // Move laterally based on input
   const lateralSpeed = 0.1;
   const maxLateral = roadWidth / 2 - 1;
 
@@ -869,7 +858,7 @@ if (car) {
   downRaycaster.set(rayOrigin, downDirection);
 
   // Check intersection with road meshes
-  const intersects = downRaycaster.intersectObjects(roadSegments, true); // true = recursive check in children
+  const intersects = downRaycaster.intersectObjects(roadSegments, true);
 
   if (intersects.length > 0) {
     const roadY = intersects[0].point.y;
@@ -949,8 +938,6 @@ if (car) {
       }
     }
   }
-
-  // === Render Scene ===
   renderer.render(scene, camera);
 }
 
